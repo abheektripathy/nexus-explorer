@@ -17,6 +17,7 @@ export function LatestBlocks() {
 
   useEffect(() => {
     const getLatestBlock = async () => {
+      setLoading(true);
       try {
         const response = await fetchLatestBlock();
         if (!response.ok) {
@@ -27,7 +28,6 @@ export function LatestBlocks() {
         if (data.transactions.length === 0) {
           data.transactions = MOCK_TRANSACTIONS;
         }
-        
         setBlock(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch data');
@@ -37,6 +37,14 @@ export function LatestBlocks() {
     };
 
     getLatestBlock();
+
+    const intervalId = setInterval(() => {
+      getLatestBlock();
+    }, 20000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
   }, []);
 
   useEffect(() => {
@@ -69,7 +77,7 @@ export function LatestBlocks() {
 
   if (loading) {
     return (
-      <Card className="p-6 bg-zinc-900 border-white border-opacity-5">
+      <Card className="p-6 bg-[#141414] border-white border-opacity-5">
         <Skeleton className="h-8 w-48 bg-zinc-800" />
         <div className="grid grid-cols-2 gap-4 mt-6">
           <Skeleton className="h-24 bg-zinc-800" />
@@ -84,7 +92,7 @@ export function LatestBlocks() {
 
   if (error) {
     return (
-      <Card className="p-6 bg-zinc-900 border-white border-opacity-10">
+      <Card className="p-6 bg-[#141414] border-white border-opacity-10">
         <div className="text-red-400">
           <h2 className="text-xl font-bold mb-2">Error</h2>
           <p>{error}</p>
@@ -94,8 +102,8 @@ export function LatestBlocks() {
   }
 
   return (
-    <Card className="p-6 bg-zinc-900 border-white border-opacity-5">
-      <h2 className="text-xl font-bold text-blue-500">Latest Block</h2>
+    <Card className="p-6 bg-[#141414] border-white border-opacity-5">
+      <h2 className="text-xl font-bold">Latest Block</h2>
       <div className="grid grid-cols-2 gap-4 mt-6">
         <div className="p-4 bg-zinc-800 rounded-lg">
           <p className="text-sm text-gray-400">Block Number</p>
@@ -109,9 +117,9 @@ export function LatestBlocks() {
         <HashWithCopy hash={block?.header.avail_header_hash} label="Avail Header Hash" />
       </div>
       <div className="mt-6">
-        <h3 className="text-lg font-semibold mb-4">Transactions</h3>
+        <h3 className="text-lg font-semibold mb-4">Transactions (mock)</h3>
         {block?.transactions.map((tx, i) => (
-          <div key={i} className="p-4 bg-zinc-900 rounded-lg mb-2 border border-zinc-800">
+          <div key={i} className="p-4 bg-[#141414] rounded-lg mb-2 border border-zinc-800">
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">

@@ -1,6 +1,9 @@
 const API_BASE_URL = 'http://dev.nexus.avail.tools';
 
-export async function fetchLatestBlock(): Promise<Response> {
+export async function fetchLatestBlock(block_number?: Number): Promise<Response> {
+  if (block_number) {
+    return fetch(`${API_BASE_URL}/block?block_number=${block_number}`);
+  }
   return fetch(`${API_BASE_URL}/block`);
 }
 

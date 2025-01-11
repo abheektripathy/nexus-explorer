@@ -3,17 +3,10 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Badge } from '@/components/ui/badge';
+import { Copy, ChevronDown, ChevronUp } from 'lucide-react';
 import { AccountState } from '@/types/api';
 import { fetchAccountState } from '@/lib/api';
-
 
 const SAMPLE_ACCOUNTS = [
   '1f5ff885ceb5bf1350c4449316b7d703034c1278ab25bcc923d5347645a0117e',
@@ -28,6 +21,8 @@ export function AccountStates() {
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<AccountDisplay[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [expandedAccount, setExpandedAccount] = useState<string | null>(SAMPLE_ACCOUNTS[0]);
+  const [copiedHash, setCopiedHash] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAccounts = async () => {
@@ -56,15 +51,37 @@ export function AccountStates() {
     fetchAccounts();
   }, []);
 
-  const formatHash = (hash: number[]) => {
-    return `0x${hash.map(n => n.toString(16).padStart(2, '0')).join('').slice(0, 10)}...`;
+  useEffect(() => {
+    if (copiedHash) {
+      const timer = setTimeout(() => setCopiedHash(null), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [copiedHash]);
+
+  const formatHash = (hash: string | number[]) => {
+    if (Array.isArray(hash)) {
+      const fullHash = hash.map(n => n.toString(16).padStart(2, '0')).join('');
+      return `${fullHash.slice(0, 4)}...${fullHash.slice(-3)}`;
+    }
+    return `${hash.slice(0, 4)}...${hash.slice(-3)}`;
+  };
+
+  const copyToClipboard = async (hash: string | number[]) => {
+    const fullHash = Array.isArray(hash) 
+      ? hash.map(n => n.toString(16).padStart(2, '0')).join('')
+      : hash;
+    await navigator.clipboard.writeText(fullHash);
+    setCopiedHash(fullHash);
   };
 
   if (loading) {
     return (
       <Card className="p-6 bg-[#141414] border-white border-opacity-5">
-        <Skeleton className="h-8 w-48 bg-[#242424]" />
-        <Skeleton className="h-64 mt-6 bg-[#242424]" />
+        <Skeleton className="h-8 w-48 bg-zinc-800" />
+        <div className="space-y-4 mt-6">
+          <Skeleton className="h-20 bg-zinc-800" />
+          <Skeleton className="h-20 bg-zinc-800" />
+        </div>
       </Card>
     );
   }
@@ -74,7 +91,7 @@ export function AccountStates() {
       <Card className="p-6 bg-[#141414] border-white border-opacity-5">
         <div className="text-red-400">
           <h2 className="text-xl font-bold mb-2">Error</h2>
-          <p className='text-wrap'>{error}</p>
+          <p className="text-wrap">{error}</p>
         </div>
       </Card>
     );
@@ -82,27 +99,76 @@ export function AccountStates() {
 
   return (
     <Card className="p-6 bg-[#141414] border-white border-opacity-5">
-      <h2 className="text-xl font-bold text-[#3B81F6] mb-6">Account States</h2>
-      <Table>
-        <TableHeader>
-          <TableRow className="border-white border-opacity-5">
-            <TableHead className="text-gray-400">Account ID</TableHead>
-            <TableHead className="text-gray-400">Height</TableHead>
-            <TableHead className="text-gray-400">Last Proof</TableHead>
-            <TableHead className="text-gray-400">State Root</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {accounts.map((account) => (
-            <TableRow key={account.id} className="border-white border-opacity-5">
-              <TableCell className="font-mono">{account.id}</TableCell>
-              <TableCell>{account.height}</TableCell>
-              <TableCell>{account.last_proof_height}</TableCell>
-              <TableCell className="font-mono">{formatHash(account.state_root)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <h2 className="text-xl font-bol mb-6">Account States</h2>
+      <div className="space-y-4">
+        {accounts.map((account) => (
+          <div 
+            key={account.id} 
+            className="p-4 bg-[#141414] rounded-lg border border-zinc-800 transition-all duration-200"
+          >
+            <div 
+              className="flex items-center justify-between cursor-pointer"
+              onClick={() => setExpandedAccount(expandedAccount === account.id ? null : account.id)}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-mono">{formatHash(account.id)}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    copyToClipboard(account.id);
+                  }}
+                  className="p-1 hover:bg-zinc-800 rounded"
+                >
+                  <Copy 
+                    size={14} 
+                    className={copiedHash === account.id ? 'text-green-400' : 'text-gray-400'} 
+                  />
+                </button>
+              </div>
+              {expandedAccount === account.id ? (
+                <ChevronUp className="text-gray-400" size={20} />
+              ) : (
+                <ChevronDown className="text-gray-400" size={20} />
+              )}
+            </div>
+            
+            {expandedAccount === account.id && (
+              <div className="mt-4 space-y-3 pt-4 border-t border-zinc-800">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-zinc-800 rounded">
+                    <p className="text-sm text-gray-400">Height</p>
+                    <p className="text-sm font-semibold">{account.height}</p>
+                  </div>
+                  <div className="p-3 bg-zinc-800 rounded">
+                    <p className="text-sm text-gray-400">Last Proof Height</p>
+                    <p className="text-sm font-semibold">{account.last_proof_height}</p>
+                  </div>
+                </div>
+                
+                <div className="p-3 bg-zinc-800 rounded">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-400">State Root</p>
+                    <button
+                      onClick={() => copyToClipboard(account.state_root)}
+                      className="p-1 hover:bg-zinc-700 rounded"
+                    >
+                      <Copy 
+                        size={14} 
+                        className={
+                          copiedHash === account.state_root.map(n => n.toString(16).padStart(2, '0')).join('')
+                            ? 'text-green-400' 
+                            : 'text-gray-400'
+                        } 
+                      />
+                    </button>
+                  </div>
+                  <p className="text-sm font-mono">{formatHash(account.state_root)}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </Card>
   );
 }
