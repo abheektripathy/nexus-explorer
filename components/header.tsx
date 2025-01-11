@@ -10,7 +10,7 @@ export function Header() {
       <div className="container mx-auto px-4 py-4 flex justify-center items-center">
       <Search/>
         <div className="absolute right-6 ">
-          <Link href="https://github.com" className="hover:text-[#3B81F6] transition-colors">
+          <Link href="https://github.com/availproject/nexus" className="hover:text-[#3B81F6] transition-colors">
             <Github className="w-4 h-4 text-opacity-75 text-white" />
           </Link>
 

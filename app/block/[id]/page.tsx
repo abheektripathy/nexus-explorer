@@ -52,7 +52,7 @@ export default function BlockPage() {
   if (loading) {
     return (
       <div className="flex flex-col space-y-3 items-center justify-center mx-auto p-6 h-screen w-screen ">
-        <Card className="w-[50%] p-6 bg-zinc-900 border-white border-opacity-5">
+        <Card className="w-full md:w-[50%] p-6 bg-zinc-900 border-white border-opacity-5">
           <Skeleton className="h-8 w-48 bg-zinc-800" />
           <div className="grid grid-cols-2 gap-4 mt-6">
             <Skeleton className="h-24 bg-zinc-800" />
@@ -68,11 +68,11 @@ export default function BlockPage() {
 
   if (error) {
     return (
-      <div className="flex flex-col space-y-3 items-center justify-center mx-auto p-6 h-screen w-screen ">
-         <a className='flex items-center text-white text-opacity-50 justify-end w-[50%] space-x-2 hover:text-blue-500 underline' href='/'>
+      <div className="flex flex-col-reverse md:flex-col space-y-3 items-center justify-center mx-auto p-6 h-screen w-screen ">
+         <a className='flex items-center max-md:pt-4 text-white text-opacity-50 justify-end md:w-[50%] space-x-2 hover:text-blue-500 underline' href='/'>
            <p>{`go back to main menu`}</p>  <ArrowRight className=' w-3 h-3'/>
         </a>
-        <Card className="w-[50%] p-6 bg-zinc-900 border-white border-opacity-5">
+        <Card className="md:w-[50%] p-6 bg-zinc-900 border-white border-opacity-5">
           <div className="text-red-400">
             <h2 className="text-xl font-bold mb-2">Error</h2>
             <p>{error}</p>
@@ -83,11 +83,11 @@ export default function BlockPage() {
   }
 
   return (
-    <div className="flex flex-col space-y-3 items-center justify-center mx-auto p-6 h-screen w-screen ">
-        <a className='flex items-center text-white text-opacity-50 justify-end w-[50%] space-x-2 hover:text-blue-500 underline' href='/'>
+    <div className="flex flex-col-reverse md:flex-col space-y-3 items-center justify-center mx-auto p-6 h-screen w-screen">
+        <a className='flex items-center max-md:pt-4 text-white text-opacity-50 justify-end md:w-[50%] space-x-2 hover:text-blue-500 underline' href='/'>
            <p>{`go back to main menu`}</p>  <ArrowRight className=' w-3 h-3'/>
         </a>
-      <Card className="p-6 w-[50%] bg-zinc-900 border-white border-opacity-5">
+      <Card className="p-6 md:w-[50%] bg-zinc-900 border-white border-opacity-5">
         <h2 className="text-xl font-bold text-blue-500">Block #{params.id}</h2>
         <div className="grid grid-cols-2 gap-4 mt-6">
           <div className="p-4 bg-zinc-800 rounded-lg">
