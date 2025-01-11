@@ -107,7 +107,7 @@ export default function BlockPage() {
                 className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-700 rounded"
               >
                 <Copy size={14} className={
-                  copiedHash === block?.header.state_root?.map(n => n.toString(16).padStart(2, '0')).join('')
+                  copiedHash === block?.header.state_root?.map((n: number) => n.toString(16).padStart(2, '0')).join('')
                     ? 'text-green-400'
                     : 'text-gray-400'
                 } />
@@ -123,7 +123,7 @@ export default function BlockPage() {
                 className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-700 rounded"
               >
                 <Copy size={14} className={
-                  copiedHash === block?.header.avail_header_hash?.map(n => n.toString(16).padStart(2, '0')).join('')
+                  copiedHash === block?.header.avail_header_hash?.map((n: number) => n.toString(16).padStart(2, '0')).join('')
                     ? 'text-green-400'
                     : 'text-gray-400'
                 } />
@@ -145,19 +145,19 @@ export default function BlockPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-mono">{formatHash(tx.block_hash)}</span>
-                      <button
+                        <button
                         onClick={() => tx.block_hash && copyToClipboard(tx.block_hash)}
                         className="p-1 hover:bg-zinc-800 rounded"
-                      >
+                        >
                         <Copy 
                           size={14} 
                           className={
-                            copiedHash === tx.block_hash?.map(n => n.toString(16).padStart(2, '0')).join('')
-                              ? 'text-green-400'
-                              : 'text-gray-400'
+                          copiedHash === tx.block_hash?.map((n: number) => n.toString(16).padStart(2, '0')).join('')
+                            ? 'text-green-400'
+                            : 'text-gray-400'
                           } 
                         />
-                      </button>
+                        </button>
                     </div>
                     <Badge 
                       variant="outline" 

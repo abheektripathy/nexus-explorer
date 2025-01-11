@@ -15,9 +15,9 @@ export interface AccountState {
 export interface NexusHeader {
   parent_hash: H256;
   prev_state_root: H256;
-  state_root: H256;
+  state_root: number[];
   tx_root: H256;
-  avail_header_hash: H256;
+  avail_header_hash: number[];
   number: number;
 }
 
