@@ -26,7 +26,7 @@ export function LatestBlocks() {
   useEffect(() => {
     const checkApiHealth = async () => {
       try {
-        const response = await fetch('http://dev.nexus.avail.tools/health');
+        const response = await fetch('https://dev.nexus.avail.tools/health');
         const data = await response.json();
         setIsApiHealthy(data.status === "Alive ser.");
       } catch (err) {
