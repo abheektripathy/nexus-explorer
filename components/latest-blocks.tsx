@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/tooltip"
 import { NexusBlockWithTransactions } from '@/types/api';
 import { fetchLatestBlock } from '@/lib/api';
-import { formatHash, getFullHash, MOCK_TRANSACTIONS } from '@/lib/utils';
+import { formatHash, getFullHash } from '@/lib/utils';
 
 export function LatestBlocks() {
   const [loading, setLoading] = useState(true);
@@ -55,10 +55,6 @@ export function LatestBlocks() {
           throw new Error('Failed to fetch latest block');
         }
         const data = await response.json();
-        
-        if (data.transactions.length === 0) {
-          data.transactions = MOCK_TRANSACTIONS;
-        }
         setBlock(data);
         setCountdown(20); // Reset countdown when new block is fetched
       } catch (err) {
