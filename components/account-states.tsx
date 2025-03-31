@@ -111,7 +111,10 @@ export function AccountStates() {
               onClick={() => setExpandedAccount(expandedAccount === account.id ? null : account.id)}
             >
               <div className="flex items-center gap-2">
-                <span className="text-sm font-mono">{formatHash(account.id)}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-mono">ZKSync {SAMPLE_ACCOUNTS.indexOf(account.id) + 1}</span>
+                  <span className="text-sm text-gray-400">({formatHash(account.id)})</span>
+                </div>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

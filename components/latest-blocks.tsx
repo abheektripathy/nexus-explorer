@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Copy } from 'lucide-react';
+import { Copy, X } from 'lucide-react';
 import { 
   Tooltip,
   TooltipContent,
@@ -168,49 +168,56 @@ export function LatestBlocks() {
         <HashWithCopy hash={block?.header.avail_header_hash} label="Avail Header Hash" />
       </div>
       <div className="mt-6">
-        <h3 className="text-lg font-semibold mb-4">Transactions (mock)</h3>
-        {block?.transactions.map((tx, i) => (
-          <div key={i} className="p-4 bg-[#141414] rounded-lg mb-2 border border-zinc-800">
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-mono">{formatHash(tx.block_hash)}</span>
-                  <button
-                    onClick={() => tx.block_hash && copyToClipboard(tx.block_hash)}
-                    className="p-1 hover:bg-zinc-800 rounded"
-                  >
-                    <Copy 
-                      size={14} 
-                      className={copiedHash === getFullHash(tx.block_hash) ? 'text-green-400' : 'text-gray-400'} 
-                    />
-                  </button>
-                </div>
-                <Badge 
-                  variant="outline" 
-                  className={`
-                    ${tx.status === 'Successful' ? 'bg-green-900/20 text-green-400 border-green-900' : 
-                      tx.status === 'Failed' ? 'bg-red-900/20 text-red-400 border-red-900' :
-                      'bg-yellow-900/20 text-yellow-400 border-yellow-900'}
-                  `}
-                >
-                  {tx.status}
-                </Badge>
-              </div>
-              <div className="text-xs text-gray-400">
-                <span>Type: </span>
-                <span className="text-gray-300">
-                  {tx.transaction.params.SubmitProof ? 'Submit Proof' : 'Init Account'}
-                </span>
-              </div>
-              {tx.transaction.params.SubmitProof && (
-                <div className="text-xs text-gray-400">
-                  <span>Height: </span>
-                  <span className="text-gray-300">{tx.transaction.params.SubmitProof.height}</span>
-                </div>
-              )}
-            </div>
+        <h3 className="text-lg font-semibold mb-4">Transactions</h3>
+        {block?.transactions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-8 bg-zinc-800/50 rounded-lg border border-zinc-700">
+            <X size={24} className="text-gray-400 mb-2" />
+            <p className="text-gray-400">No transactions found</p>
           </div>
-        ))}
+        ) : (
+          block?.transactions.map((tx, i) => (
+            <div key={i} className="p-4 bg-zinc-900 rounded-lg mb-2 border border-zinc-800">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-mono">{formatHash(tx.block_hash)}</span>
+                    <button
+                      onClick={() => tx.block_hash && copyToClipboard(tx.block_hash)}
+                      className="p-1 hover:bg-zinc-800 rounded"
+                    >
+                      <Copy 
+                        size={14} 
+                        className={copiedHash === getFullHash(tx.block_hash) ? 'text-green-400' : 'text-gray-400'} 
+                      />
+                    </button>
+                  </div>
+                  <Badge 
+                    variant="outline" 
+                    className={`
+                      ${tx.status === 'Successful' ? 'bg-green-900/20 text-green-400 border-green-900' : 
+                        tx.status === 'Failed' ? 'bg-red-900/20 text-red-400 border-red-900' :
+                        'bg-yellow-900/20 text-yellow-400 border-yellow-900'}
+                    `}
+                  >
+                    {tx.status}
+                  </Badge>
+                </div>
+                <div className="text-xs text-gray-400">
+                  <span>Type: </span>
+                  <span className="text-gray-300">
+                    {tx.transaction.params.SubmitProof ? 'Submit Proof' : 'Init Account'}
+                  </span>
+                </div>
+                {tx.transaction.params.SubmitProof && (
+                  <div className="text-xs text-gray-400">
+                    <span>Height: </span>
+                    <span className="text-gray-300">{tx.transaction.params.SubmitProof.height}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </Card>
   );
