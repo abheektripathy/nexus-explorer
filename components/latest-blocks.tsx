@@ -1,32 +1,38 @@
-"use client"
-
-import { useEffect, useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { Copy, X } from 'lucide-react';
-import { 
+"use client";
+import { Block, Decoder } from "avail-js-sdk";
+import { useEffect, useState, useCallback } from "react";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Copy, X, ExternalLink } from "lucide-react";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { NexusBlockWithTransactions } from '@/types/api';
-import { fetchLatestBlock } from '@/lib/api';
-import { formatHash, getFullHash } from '@/lib/utils';
+} from "@/components/ui/tooltip";
+import { NexusBlockWithTransactions, NexusHeader, TransactionWithStatus } from "@/types/api";
+import { fetchLatestBlock } from "@/lib/api";
+import { formatHash, getFullHash } from "@/lib/utils";
+import { useAvailSdk } from "@/hooks/use-avail-sdk";
 
 export function LatestBlocks() {
   const [loading, setLoading] = useState(true);
-  const [block, setBlock] = useState<NexusBlockWithTransactions | null>(null);
+  const [block, setBlock] = useState<{
+    header: NexusHeader;
+    transactions: TransactionWithStatus[];
+    timestamp: string | null;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(20);
   const [isApiHealthy, setIsApiHealthy] = useState(false);
+  const { sdk, error: sdkError } = useAvailSdk();
 
   useEffect(() => {
     const checkApiHealth = async () => {
       try {
-        const response = await fetch('https://dev.nexus.avail.tools/health');
+        const response = await fetch("https://dev.nexus.avail.tools/health");
         const data = await response.json();
         setIsApiHealthy(data.status === "Alive ser.");
       } catch (err) {
@@ -41,39 +47,72 @@ export function LatestBlocks() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCountdown(prev => prev > 0 ? prev - 1 : 20);
+      setCountdown((prev) => (prev > 0 ? prev - 1 : 20));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    const getLatestBlock = async () => {
-      setLoading(true);
-      try {
-        const response = await fetchLatestBlock();
-        if (!response.ok) {
-          throw new Error('Failed to fetch latest block');
-        }
-        const data = await response.json();
-        setBlock(data);
-        setCountdown(20); // Reset countdown when new block is fetched
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch data');
-      } finally {
-        setLoading(false);
+  const getLatestBlock = useCallback(async () => {
+    if (!sdk) return;
+    
+    setLoading(true);
+    try {
+      const response = await fetchLatestBlock();
+      if (!response.ok) {
+        throw new Error("Failed to fetch latest block");
       }
-    };
+      const data = await response.json();
+      
+      class Timestamp {
+        constructor(public now: string) {}
+        static PALLET_NAME: string = "timestamp";
+        static CALL_NAME: string = "set";
 
-    getLatestBlock();
+        static decode(
+          palletName: string,
+          callName: string,
+          callData: Uint8Array
+        ): Timestamp | undefined {
+          if (this.PALLET_NAME != palletName || this.CALL_NAME != callName) {
+            return undefined;
+          }
 
-    const intervalId = setInterval(() => {
+          const decoder = new Decoder.Decoder(callData, 0);
+          return new Timestamp(decoder.decodeU64(true).toString());
+        }
+      }
+
+      const block = await Block.New(
+        sdk.client,
+        `0x${data.header.avail_header_hash
+          .map((b: number) => b.toString(16).padStart(2, "0"))
+          .join("")}`
+      );
+      const tx = block.transactions({ txIndex: 0 })[0];
+      const timestamp = tx.decode(Timestamp);
+      const utcTimestamp = timestamp ? new Date(parseInt(timestamp.now)).toISOString() : null;
+      setBlock({ ...data, timestamp: utcTimestamp });
+      setCountdown(20);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch data");
+    } finally {
+      setLoading(false);
+    }
+  }, [sdk]);
+
+  useEffect(() => {
+    if (sdkError) {
+      setError(sdkError);
+    }
+  }, [sdkError]);
+
+  useEffect(() => {
+    if (sdk) {
       getLatestBlock();
-    }, 20000);
-
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, []);
+      const intervalId = setInterval(getLatestBlock, 20000);
+      return () => clearInterval(intervalId);
+    }
+  }, [sdk, getLatestBlock]);
 
   useEffect(() => {
     if (copiedHash) {
@@ -88,17 +127,46 @@ export function LatestBlocks() {
     setCopiedHash(fullHash);
   };
 
-  const HashWithCopy = ({ hash, label }: { hash: number[] | undefined, label: string }) => (
+  const HashWithCopy = ({
+    hash,
+    label,
+    showExplorer = false,
+  }: {
+    hash: number[] | undefined;
+    label: string;
+    showExplorer?: boolean;
+  }) => (
     <div className="p-4 bg-zinc-800 rounded-lg relative group">
       <p className="text-sm text-gray-400">{label}</p>
       <div className="flex items-center justify-between">
-        <p className="text-sm font-mono truncate">{formatHash(hash)}</p>
-        <button
-          onClick={() => hash && copyToClipboard(hash)}
-          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-700 rounded"
-        >
-          <Copy size={14} className={copiedHash === getFullHash(hash) ? 'text-green-400' : 'text-gray-400'} />
-        </button>
+        <p className="text-sm font-mono truncate">
+          {label === "Avail Header Hash" ? `0x${formatHash(hash)}` : formatHash(hash)}
+        </p>
+        <div className="flex items-center gap-2">
+          {showExplorer && (
+            <a
+              href="https://infinity-explorer.avail.so/#/explorer/query/0xa21ed2224d6ecaced7574c005c591032861e6765de56e4d6a4cbe935b7ce6ff5"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1 hover:bg-zinc-700 rounded"
+            >
+              <ExternalLink size={14} className="text-gray-400" />
+            </a>
+          )}
+          <button
+            onClick={() => hash && copyToClipboard(hash)}
+            className="p-1 hover:bg-zinc-700 rounded"
+          >
+            <Copy
+              size={14}
+              className={
+                copiedHash === getFullHash(hash)
+                  ? "text-green-400"
+                  : "text-gray-400"
+              }
+            />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -134,18 +202,28 @@ export function LatestBlocks() {
       <div className="flex items-center gap-4">
         <h2 className="text-xl font-bold">Latest Block</h2>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-400">Next block in {countdown}s</span>
+          <span className="text-sm text-gray-400">
+            Next block in {countdown}s
+          </span>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
-                <div className={`w-2 h-2 rounded-full ${isApiHealthy ? 'bg-green-500' : 'bg-red-500'} relative`}>
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    isApiHealthy ? "bg-green-500" : "bg-red-500"
+                  } relative`}
+                >
                   {isApiHealthy && (
                     <span className="absolute w-2 h-2 rounded-full bg-green-500 animate-ping" />
                   )}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{isApiHealthy ? 'API connected and live' : 'Operational issue'}</p>
+                <p>
+                  {isApiHealthy
+                    ? "API connected and live"
+                    : "Operational issue"}
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -157,11 +235,17 @@ export function LatestBlocks() {
           <p className="text-lg font-bold">{block?.header.number}</p>
         </div>
         <div className="p-4 bg-zinc-800 rounded-lg">
-          <p className="text-sm text-gray-400">Transactions</p>
-          <p className="text-lg font-bold">{block?.transactions.length}</p>
+          <p className="text-sm text-gray-400">Timestamp</p>
+          <p className="text-md font-bold">
+            {block?.timestamp ? block.timestamp.replace('T', ' ').replace('.000Z', ' UTC') : "N/A"}
+          </p>
         </div>
         <HashWithCopy hash={block?.header.state_root} label="State Root" />
-        <HashWithCopy hash={block?.header.avail_header_hash} label="Avail Header Hash" />
+        <HashWithCopy
+          hash={block?.header.avail_header_hash}
+          label="Avail Header Hash"
+          showExplorer={true}
+        />
       </div>
       <div className="mt-6">
         <h3 className="text-lg font-semibold mb-4">Transactions</h3>
@@ -172,27 +256,42 @@ export function LatestBlocks() {
           </div>
         ) : (
           block?.transactions.map((tx, i) => (
-            <div key={i} className="p-4 bg-zinc-900 rounded-lg mb-2 border border-zinc-800">
+            <div
+              key={i}
+              className="p-4 bg-zinc-900 rounded-lg mb-2 border border-zinc-800"
+            >
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-mono">{formatHash(tx.block_hash)}</span>
+                    <span className="text-sm font-mono">
+                      {formatHash(tx.block_hash)}
+                    </span>
                     <button
-                      onClick={() => tx.block_hash && copyToClipboard(tx.block_hash)}
+                      onClick={() =>
+                        tx.block_hash && copyToClipboard(tx.block_hash)
+                      }
                       className="p-1 hover:bg-zinc-800 rounded"
                     >
-                      <Copy 
-                        size={14} 
-                        className={copiedHash === getFullHash(tx.block_hash) ? 'text-green-400' : 'text-gray-400'} 
+                      <Copy
+                        size={14}
+                        className={
+                          copiedHash === getFullHash(tx.block_hash)
+                            ? "text-green-400"
+                            : "text-gray-400"
+                        }
                       />
                     </button>
                   </div>
-                  <Badge 
-                    variant="outline" 
+                  <Badge
+                    variant="outline"
                     className={`
-                      ${tx.status === 'Successful' ? 'bg-green-900/20 text-green-400 border-green-900' : 
-                        tx.status === 'Failed' ? 'bg-red-900/20 text-red-400 border-red-900' :
-                        'bg-yellow-900/20 text-yellow-400 border-yellow-900'}
+                      ${
+                        tx.status === "Successful"
+                          ? "bg-green-900/20 text-green-400 border-green-900"
+                          : tx.status === "Failed"
+                          ? "bg-red-900/20 text-red-400 border-red-900"
+                          : "bg-yellow-900/20 text-yellow-400 border-yellow-900"
+                      }
                     `}
                   >
                     {tx.status}
@@ -201,13 +300,17 @@ export function LatestBlocks() {
                 <div className="text-xs text-gray-400">
                   <span>Type: </span>
                   <span className="text-gray-300">
-                    {tx.transaction.params.SubmitProof ? 'Submit Proof' : 'Init Account'}
+                    {tx.transaction.params.SubmitProof
+                      ? "Submit Proof"
+                      : "Init Account"}
                   </span>
                 </div>
                 {tx.transaction.params.SubmitProof && (
                   <div className="text-xs text-gray-400">
                     <span>Height: </span>
-                    <span className="text-gray-300">{tx.transaction.params.SubmitProof.height}</span>
+                    <span className="text-gray-300">
+                      {tx.transaction.params.SubmitProof.height}
+                    </span>
                   </div>
                 )}
               </div>

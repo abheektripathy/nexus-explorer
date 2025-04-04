@@ -19,6 +19,7 @@ export interface NexusHeader {
   tx_root: H256;
   avail_header_hash: number[];
   number: number;
+  timestamp: number;
 }
 
 export interface Transaction {
@@ -50,4 +51,7 @@ export interface TransactionWithStatus {
 export interface NexusBlockWithTransactions {
   header: NexusHeader;
   transactions: TransactionWithStatus[];
+  timestamp?: {
+    now: string;
+  };
 }
